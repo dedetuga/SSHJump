@@ -1,0 +1,12 @@
+# Build outputs
+/out/
+dist/
+*.test
+
+# Local scratch / prebuilt binaries (built via ./build.sh)
+/tmp/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
