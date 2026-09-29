@@ -1,4 +1,4 @@
-# SSH Jump — ACAP for Axis cameras
+# SSH Jump — ACAP for Axis cameras AXIS OS < 11
 
 A small ACAP application that runs on an Axis device (which is on the same
 network as the equipment you need to reach) and provides a **browser-based SSH
