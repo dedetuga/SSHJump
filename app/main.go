@@ -262,7 +262,16 @@ func connectHandler(w http.ResponseWriter, r *http.Request) {
 	addr := net.JoinHostPort(cm.Host, strconv.Itoa(cm.Port))
 	client, err := ssh.Dial("tcp", addr, cfg)
 	if err != nil {
-		writeJSON(w, 502, map[string]string{"error": "SSH connection failed: " + err.Error()})
+		// Append what actually arrived at the daemon (lengths only, never the
+		// content) so a failed login reveals whether a field was truncated or
+		// clobbered (e.g. by browser autofill) before it reached us.
+		diag := err.Error()
+		if cm.AuthType != "key" {
+			diag += " [received: user " + strconv.Quote(cm.User) +
+				" (" + strconv.Itoa(len(cm.User)) + " chars), password " +
+				strconv.Itoa(len(cm.Password)) + " chars]"
+		}
+		writeJSON(w, 502, map[string]string{"error": "SSH connection failed: " + diag})
 		return
 	}
 	sess, err := client.NewSession()

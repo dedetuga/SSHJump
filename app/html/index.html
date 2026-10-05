@@ -59,7 +59,7 @@
     </div>
 
     <label>Username</label>
-    <input id="user" placeholder="admin">
+    <input id="user" placeholder="admin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" name="sshjump_target_user" data-lpignore="true" data-1p-ignore data-form-type="other">
 
     <label>Authentication</label>
     <select id="authType">
@@ -68,8 +68,8 @@
     </select>
 
     <div class="pwonly">
-      <label>Password</label>
-      <input id="password" type="password">
+      <label>Password <span id="pwcount" style="opacity:.6;font-weight:normal"></span></label>
+      <input id="password" type="password" readonly onfocus="this.removeAttribute('readonly')" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" name="sshjump_target_pw" data-lpignore="true" data-1p-ignore data-form-type="other">
     </div>
 
     <div class="keyonly">
@@ -221,19 +221,31 @@
     if(connected && sid) queueInput(enc.encode(d));
   });
 
-  // idle indicator + auto-refresh of remaining time
+  // idle indicator + auto-refresh of remaining time (defensive parsing: the
+  // daemon reports idleTimeout as a Go duration string like "30m0s").
   function poll(){
     var base = location.pathname.replace(/[^/]*$/, "");
     fetch(base + "api/health").then(function(r){return r.json();}).then(function(j){
-      $("tmo").textContent = j.idleTimeout;
-      var remain = 0, mtch = /(\d+)m/.exec(j.idleTimeout);
-      var tmoSec = mtch ? parseInt(mtch[1],10)*60 : 1800;
-      remain = Math.max(0, tmoSec - j.idleSeconds);
-      var mm = Math.floor(remain/60), ss = remain%60;
-      $("idle").textContent = "sessions: "+j.sessions+" · stops in "+mm+"m"+(ss<10?"0":"")+ss+"s";
+      var it = j.idleTimeout, mtch = /(\d+)m/.exec(it||"");
+      var tmoSec = mtch ? parseInt(mtch[1],10)*60 : (parseInt(it,10)||1800);
+      var mins = Math.round(tmoSec/60);
+      $("tmo").textContent = mins + " min";
+      var sess = (typeof j.sessions === "number") ? j.sessions : 0;
+      var idleSec = (typeof j.idleSeconds === "number") ? j.idleSeconds : 0;
+      var remain = Math.max(0, tmoSec - idleSec), mm = Math.floor(remain/60), ss = remain%60;
+      $("idle").textContent = "sessions: "+sess+(sess>0?(" · stops in "+mm+"m"+(ss<10?"0":"")+ss+"s"):"");
     }).catch(function(){ $("idle").textContent = "server stopped — re-enable the ACAP"; });
   }
   poll(); setInterval(poll, 5000);
+
+  // Live password-length indicator — lets you confirm the field holds exactly
+  // what you typed (and catches browser autofill silently replacing it).
+  (function(){
+    var pw = $("password"), c = $("pwcount");
+    function upd(){ c.textContent = pw.value.length ? "("+pw.value.length+" chars)" : ""; }
+    pw.addEventListener("input", upd); pw.addEventListener("change", upd);
+    setInterval(upd, 500); upd();
+  })();
 })();
 </script>
 </body>
